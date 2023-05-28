@@ -122,19 +122,17 @@ class DeyeModbusTest(unittest.TestCase):
     def test_incorrect_inverter_serial_number(self, connector):
         # given
         sut = DeyeModbus(self.config, connector)
-        connector.send_request.return_value = bytearray.fromhex(
-            "a51000101500c9c22576f80201032d0000790800007106d6630600bd15"
-        )
+        connector.send_request.return_value = bytes.fromhex(
+            'a51000101500c9c22576f80201032d0000790800007106d6630600bd15')
 
         # when
         with self.assertLogs() as captured:
             sut.read_registers(0x50, 0x5F)
 
         # then
-        self.assertEqual(len(captured.records), 2)
-        self.assertEqual(
-            captured.records[0].getMessage(), "Logger Serial Number does not match. Check your configuration file."
-        )
+        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(captured.records[0].getMessage(),
+                         "Logger Serial Number does not match. Check your configuration file.")
 
     @patch("deye_connector.DeyeConnector")
     def test_incorrect_modbus_address(self, connector):
@@ -149,7 +147,7 @@ class DeyeModbusTest(unittest.TestCase):
             sut.read_registers(0x50, 0x5F)
 
         # then
-        self.assertEqual(len(captured.records), 2)
+        self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].getMessage(), "Modbus device address does not match.")
 
     @patch("deye_connector.DeyeConnector")
@@ -165,7 +163,7 @@ class DeyeModbusTest(unittest.TestCase):
             sut.read_registers(0x50, 0x5F)
 
         # then
-        self.assertEqual(len(captured.records), 2)
+        self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].getMessage(), "Unknown response error code. Error frame: 0100")
 
 
