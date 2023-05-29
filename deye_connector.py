@@ -25,39 +25,37 @@ class DeyeConnector:
     def __init__(self, config: DeyeConfig) -> None:
         self.__log = logging.getLogger(DeyeConnector.__name__)
         self.config = config.logger
+        self.__missed_requests = 0
 
     def send_request(self, req_frame) -> bytes | None:
-        for res in socket.getaddrinfo(self.config.ip_address, self.config.port, socket.AF_INET, socket.SOCK_STREAM):
-            family, socktype, proto, canonname, sockadress = res
-            try:
-                client_socket = socket.socket(family, socktype, proto)
-                client_socket.settimeout(10)
-                client_socket.connect(sockadress)
-            except OSError as e:
-                self.__log.error("Could not open socket on IP %s: %s", self.config.ip_address, e.strerror)
-                return
-
-            self.__log.debug("Request frame: %s", req_frame.hex())
-            client_socket.sendall(req_frame)
-
-            attempts = 5
-            while attempts > 0:
-                attempts = attempts - 1
-                try:
-                    data = client_socket.recv(1024)
-                    if data:
-                        self.__log.debug("Response frame: %s", data.hex())
-                        return data
-                    self.__log.warning("No data received")
-                except socket.timeout:
-                    self.__log.debug("Connection response timeout")
-                    if attempts == 0:
-                        self.__log.warning("Too many connection timeouts")
-                except OSError as e:
-                    self.__log.error("Connection error: %s", e.strerror)
-                    return
-                except Exception:
-                    self.__log.exception("Unknown connection error")
-                    return
+        try:
+            with socket.create_connection(
+                (self.config.ip_address, self.config.port), timeout=self.config.timeout
+            ) as client_socket:
+                if self.__missed_requests:
+                    self.__log.log(logging.WARNING if self.__missed_requests > 5 else logging.INFO,
+                        "Re-connected to socket on IP %s, missed %s requests",
+                        self.config.ip_address,
+                        self.__missed_requests,
+                    )
+                    self.__missed_requests = 0
+                self.__log.debug("Request frame: %s", req_frame.hex())
+                client_socket.sendall(req_frame)
+                data = client_socket.recv(1024)
+                if data:
+                    self.__log.debug("Response frame: %s", data.hex())
+                    return data
+                self.__log.warning("No data received")
+        except socket.timeout:
+            self.__log.warning("Connection response timeout after %s seconds", self.config.timeout)
+        except OSError as e:
+            if self.__missed_requests:
+                self.__log.debug("Connection error on IP %s: %s", self.config.ip_address, e)
+            else:
+                self.__log.warning("Connection error on IP %s: %s", self.config.ip_address, e)
+            self.__missed_requests += 1
+        except Exception:
+            self.__log.exception("Unknown connection error")
+            self.__missed_requests += 1
 
         return

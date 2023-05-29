@@ -31,6 +31,8 @@ from deye_sensor import SensorRegisterRange
 from deye_sensors import sensor_list, sensor_register_ranges
 from deye_set_time_processor import DeyeSetTimeProcessor
 
+logger = logging.getLogger(__name__)
+
 
 class DeyeDaemon:
     def __init__(self, config: DeyeConfig):
@@ -100,7 +102,7 @@ class IntervalRunner:
         self.action = action
         self.stopEvent = threading.Event()
         thread = threading.Thread(target=self.__handler)
-        self.__log.debug("Start to execute the daemon at intervals of %s seconds", self.interval)
+        self.__log.info("Start to execute the daemon at intervals of %s seconds", self.interval)
         thread.start()
 
     def __handler(self):
@@ -116,13 +118,20 @@ class IntervalRunner:
         except Exception:
             self.__log.exception("Unexpected error during daemon execution")
 
-
     def cancel(self, _signum, _frame):
         self.stopEvent.set()
 
 
 def main():
     config = DeyeConfig.from_env()
+    if config.data_read_inverval < config.logger.timeout:
+        logger.warning(
+            "Read interval %s s is too short, it must be greater than the logger timeout of %s s. Interval increased to %s s.",
+            config.data_read_inverval,
+            config.logger.timeout,
+            config.logger.timeout,
+        )
+        config.data_read_inverval = config.logger.timeout
     daemon = DeyeDaemon(config)
     time_loop = IntervalRunner(config.data_read_inverval, daemon.do_task)
     signal.signal(signal.SIGINT, time_loop.cancel)
