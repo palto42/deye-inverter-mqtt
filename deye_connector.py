@@ -25,47 +25,48 @@ class DeyeConnector:
     def __init__(self, config: DeyeConfig) -> None:
         self.__log = logging.getLogger(DeyeConnector.__name__)
         self.config = config.logger
+        socket.setdefaulttimeout(10)
         self.__reachable = True
 
     def send_request(self, req_frame) -> bytes | None:
-        for res in socket.getaddrinfo(self.config.ip_address, self.config.port, socket.AF_INET, socket.SOCK_STREAM):
-            family, socktype, proto, canonname, sockadress = res
+        try:
+            client_socket = socket.create_connection((self.config.ip_address, self.config.port))
+            if not self.__reachable:
+                self.__reachable = True
+                self.__log.warning("Re-connected to socket on IP %s", self.config.ip_address)  # ToDo: INFO
+        except OSError as e:
+            if self.__reachable:
+                self.__log.warning(
+                    "Could not open socket on IP %s: %s: %s: %s: %s", self.config.ip_address, e.strerror, e.errno, e, repr(e)
+                )
+            else:
+                self.__log.warning(
+                    "Could not open socket on IP %s: %s: %s: %s: %s", self.config.ip_address, e.strerror, e.errno, e,repr(e)
+                )  # ToDo: DEBUG
+            self.__reachable = False
+            return
+
+        self.__log.debug("Request frame: %s", req_frame.hex())
+        client_socket.sendall(req_frame)
+
+        attempts = 5
+        while attempts > 0:
+            attempts = attempts - 1
             try:
-                client_socket = socket.socket(family, socktype, proto)
-                client_socket.settimeout(10)
-                client_socket.connect(sockadress)
-                if not self.__reachable:
-                    self.__reachable = True
-                    self.__log.info("Re-connected to socket on IP %s: %s: %s")
+                data = client_socket.recv(1024)
+                if data:
+                    self.__log.debug("Response frame: %s", data.hex())
+                    return data
+                self.__log.warning("No data received")
+            except socket.timeout:
+                self.__log.debug("Connection response timeout")
+                if attempts == 0:
+                    self.__log.warning("Too many connection timeouts")
             except OSError as e:
-                if self.__reachable:
-                    self.__log.error("Could not open socket on IP %s: %s: %s", self.config.ip_address, e.strerror, e)
-                else:
-                    self.__log.debug("Could not open socket on IP %s: %s: %s", self.config.ip_address, e.strerror, e)
-                self.__reachable = False
+                self.__log.error("Connection error: %s: %s", e.strerror, e)
                 return
-
-            self.__log.debug("Request frame: %s", req_frame.hex())
-            client_socket.sendall(req_frame)
-
-            attempts = 5
-            while attempts > 0:
-                attempts = attempts - 1
-                try:
-                    data = client_socket.recv(1024)
-                    if data:
-                        self.__log.debug("Response frame: %s", data.hex())
-                        return data
-                    self.__log.warning("No data received")
-                except socket.timeout:
-                    self.__log.debug("Connection response timeout")
-                    if attempts == 0:
-                        self.__log.warning("Too many connection timeouts")
-                except OSError as e:
-                    self.__log.error("Connection error: %s", e.strerror)
-                    return
-                except Exception:
-                    self.__log.exception("Unknown connection error")
-                    return
+            except Exception:
+                self.__log.exception("Unknown connection error")
+                return
 
         return
