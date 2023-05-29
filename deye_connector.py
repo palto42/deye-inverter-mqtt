@@ -25,6 +25,7 @@ class DeyeConnector:
     def __init__(self, config: DeyeConfig) -> None:
         self.__log = logging.getLogger(DeyeConnector.__name__)
         self.config = config.logger
+        self.__reachable = True
 
     def send_request(self, req_frame) -> bytes | None:
         for res in socket.getaddrinfo(self.config.ip_address, self.config.port, socket.AF_INET, socket.SOCK_STREAM):
@@ -33,8 +34,15 @@ class DeyeConnector:
                 client_socket = socket.socket(family, socktype, proto)
                 client_socket.settimeout(10)
                 client_socket.connect(sockadress)
+                if not self.__reachable:
+                    self.__reachable = True
+                    self.__log.info("Re-connected to socket on IP %s: %s: %s")
             except OSError as e:
-                self.__log.error("Could not open socket on IP %s: %s", self.config.ip_address, e.strerror)
+                if self.__reachable:
+                    self.__log.error("Could not open socket on IP %s: %s: %s", self.config.ip_address, e.strerror, e)
+                else:
+                    self.__log.debug("Could not open socket on IP %s: %s: %s", self.config.ip_address, e.strerror, e)
+                self.__reachable = False
                 return
 
             self.__log.debug("Request frame: %s", req_frame.hex())
