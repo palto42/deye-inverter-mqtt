@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import socket
 import logging
+import socket
 
 from deye_config import DeyeConfig
 
 
 class DeyeConnector:
-
     def __init__(self, config: DeyeConfig):
         self.__log = logging.getLogger(DeyeConnector.__name__)
         self.config = config.logger
@@ -42,7 +41,7 @@ class DeyeConnector:
             client_socket.sendall(req_frame)
 
             attempts = 5
-            while (attempts > 0):
+            while attempts > 0:
                 attempts = attempts - 1
                 try:
                     data = client_socket.recv(1024)
