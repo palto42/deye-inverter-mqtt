@@ -75,7 +75,7 @@ class DeyeDaemon:
         events += self.__get_observations_from_reg_values(regs)
         for processor in self.processors:
             processor.process(events)
-        self.__log.info("Reading completed in %.1f seconds", time.time()-start_time) 
+        self.__log.info("Reading completed in %.1f seconds", time.time() - start_time)
 
     def __get_observations_from_reg_values(self, regs: dict[int, bytearray]) -> list[DeyeObservationEvent]:
         timestamp = datetime.datetime.now()
@@ -125,6 +125,7 @@ class IntervalRunner:
 
 def main():
     config = DeyeConfig.from_env()
+    logger.info("Deye logger config: %s", vars(config))
     if config.data_read_inverval < config.logger.timeout:
         new_interval = config.logger.timeout * config.logger.retry
         logger.warning(
