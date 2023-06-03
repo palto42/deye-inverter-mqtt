@@ -69,4 +69,5 @@ class DeyeConnector:
                 self.__log.exception("Unknown connection error")
                 break
         self.__missed_requests += 1
+        self.__log.debug("%s. consecutive failure to get data from logger.", self.__missed_requests)
         return
