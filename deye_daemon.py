@@ -64,6 +64,7 @@ class DeyeDaemon:
         )
 
     def do_task(self):
+        start_time = time.time()
         self.__log.info("Reading start")
         regs = {}
         for reg_range in self.reg_ranges:
@@ -74,7 +75,7 @@ class DeyeDaemon:
         events += self.__get_observations_from_reg_values(regs)
         for processor in self.processors:
             processor.process(events)
-        self.__log.info("Reading completed")
+        self.__log.info("Reading completed in %.1f seconds", time.time()-start_time) 
 
     def __get_observations_from_reg_values(self, regs: dict[int, bytearray]) -> list[DeyeObservationEvent]:
         timestamp = datetime.datetime.now()
