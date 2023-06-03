@@ -181,6 +181,7 @@ All configuration options are controlled through environment variables.
 * `DEYE_LOGGER_IP_ADDRESS` - inverter data logger IP address
 * `DEYE_LOGGER_PORT` - inverter data logger communication port, typically 8899
 * `DEYE_LOGGER_TIMEOUT` - logger connection timeout in seconds, default 10 s
+* `DEYE_LOGGER_RETRY` - logger connection retries, default 1
 * `DEYE_FEATURE_MQTT_PUBLISHER` - controls, if the service will publish metrics over mqtt, defaults to `true`
 * `DEYE_FEATURE_SET_TIME` - when set to `true`, the service will automatically set the inverter/logger time, defaults to `false`
 * `MQTT_HOST` - MQTT Broker IP address

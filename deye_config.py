@@ -91,11 +91,12 @@ class DeyeLoggerConfig:
     with the device.
     """
 
-    def __init__(self, serial_number: int, ip_address: str, port: int, timeout: int):
+    def __init__(self, serial_number: int, ip_address: str, port: int, timeout: int, retry: int):
         self.serial_number = serial_number
         self.ip_address = ip_address
         self.port = port
         self.timeout = timeout
+        self.retry = retry
 
     @staticmethod
     def from_env():
@@ -104,6 +105,7 @@ class DeyeLoggerConfig:
             ip_address=os.getenv("DEYE_LOGGER_IP_ADDRESS"),
             port=int(os.getenv("DEYE_LOGGER_PORT")),
             timeout=int(os.getenv("DEYE_LOGGER_TIMEOUT", 10)),
+            retry=int(os.getenv("DEYE_LOGGER_RETRY", 1)),
         )
 
 

@@ -125,13 +125,15 @@ class IntervalRunner:
 def main():
     config = DeyeConfig.from_env()
     if config.data_read_inverval < config.logger.timeout:
+        new_interval = config.logger.timeout * config.logger.retry
         logger.warning(
-            "Read interval %s s is too short, it must be greater than the logger timeout of %s s. Interval increased to %s s.",
+            "Read interval %s s is too short, it must be greater than the logger timeout of %s s * %s retries. Interval increased to %s s.",
             config.data_read_inverval,
             config.logger.timeout,
-            config.logger.timeout,
+            config.logger.retry,
+            new_interval,
         )
-        config.data_read_inverval = config.logger.timeout
+        config.data_read_inverval = new_interval
     daemon = DeyeDaemon(config)
     time_loop = IntervalRunner(config.data_read_inverval, daemon.do_task)
     signal.signal(signal.SIGINT, time_loop.cancel)
