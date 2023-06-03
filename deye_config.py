@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
 import os
 import ssl
 
@@ -46,6 +45,9 @@ class DeyeMqttTlsConfig:
             client_key_path=os.getenv("MQTT_TLS_CLIENT_KEY_PATH", None),
             insecure=os.getenv("MQTT_TLS_INSECURE", "false") == "true",
         )
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class DeyeMqttConfig:
@@ -82,6 +84,11 @@ class DeyeMqttConfig:
             tls=DeyeMqttTlsConfig.from_env(),
         )
 
+    def __repr__(self):
+        conf_dict = vars(self).copy()
+        conf_dict["password"] = "****"  # hide password
+        return str(conf_dict)
+
 
 class DeyeLoggerConfig:
     """
@@ -107,6 +114,9 @@ class DeyeLoggerConfig:
             timeout=int(os.getenv("DEYE_LOGGER_TIMEOUT", 10)),
             retry=int(os.getenv("DEYE_LOGGER_RETRY", 1)),
         )
+
+    def __repr__(self):
+        return str(vars(self))
 
 
 class DeyeConfig:
@@ -149,3 +159,6 @@ class DeyeConfig:
         if os.getenv("DEYE_FEATURE_SET_TIME", "false") == "true":
             active_processors.append("set_time")
         return active_processors
+
+    def __repr__(self):
+        return str(vars(self))
