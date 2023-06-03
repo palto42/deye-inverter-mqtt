@@ -51,15 +51,22 @@ class DeyeConnector:
                         return data
                     self.__log.warning("No data received")
             except socket.timeout:
-                self.__log.warning("Connection response timeout after %s seconds", self.config.timeout)
+                self.__log.log(
+                    logging.INFO if attempts else logging.WARNING,
+                    "%s. connection response timeout after %s seconds",
+                    self.config.retry - attempts,
+                    self.config.timeout,
+                )
             except OSError as e:
-                if self.__missed_requests:
-                    self.__log.debug("Connection error on IP %s: %s", self.config.ip_address, e)
-                else:
-                    self.__log.warning("Connection error on IP %s: %s", self.config.ip_address, e)
-                self.__missed_requests += 1
+                self.__log.log(
+                    logging.INFO if self.__missed_requests else logging.WARNING,
+                    "%s. connection error on IP %s: %s",
+                    self.config.retry - attempts,
+                    self.config.ip_address,
+                    e,
+                )
             except Exception:
                 self.__log.exception("Unknown connection error")
-                self.__missed_requests += 1
-
+                break
+        self.__missed_requests += 1
         return
