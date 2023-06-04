@@ -18,6 +18,10 @@
 FROM python:3.10.10-alpine3.16 as builder
 
 WORKDIR /build
+# If architectures is not amd64, add some build packages
+RUN if [ "$(uname -m)" != "amd64" ]; then \
+    apk add gcc alpine-sdk; \
+    fi
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --target . -r requirements.txt
 
