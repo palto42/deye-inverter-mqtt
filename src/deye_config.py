@@ -39,6 +39,9 @@ class DeyeMqttTlsConfig:
         ssl.TLSVersion = tls_version
         self.insecure = insecure
 
+    def __repr__(self):
+        return str(vars(self))
+
     @staticmethod
     def from_env():
         return DeyeMqttTlsConfig(
@@ -71,6 +74,11 @@ class DeyeMqttConfig:
         self.logger_status_topic = logger_status_topic
         self.tls = tls
 
+    def __repr__(self):
+        conf_dict = vars(self).copy()
+        conf_dict["password"] = "****"  # hide password
+        return str(conf_dict)
+
     @staticmethod
     def from_env():
         return DeyeMqttConfig(
@@ -99,6 +107,9 @@ class DeyeLoggerConfig:
         self.port = port
         self.timeout = timeout
         self.retry = retry
+
+    def __repr__(self):
+        return str(vars(self))
 
     @staticmethod
     def from_env():
@@ -133,6 +144,9 @@ class DeyeConfig:
         self.active_processors = active_processors
         self.active_command_handlers = active_command_handlers
         self.plugins_dir = plugins_dir
+
+    def __repr__(self):
+        return str(vars(self))
 
     @staticmethod
     def from_env():

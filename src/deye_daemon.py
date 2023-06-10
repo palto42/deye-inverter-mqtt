@@ -34,6 +34,8 @@ from deye_mqtt_subscriber import DeyeMqttSubscriber
 from deye_mqtt import DeyeMqttClient
 from deye_plugin_loader import DeyePluginLoader, DeyePluginContext
 
+logger = logging.getLogger(__name__)
+
 
 class DeyeDaemon:
     def __init__(self, config: DeyeConfig):
@@ -79,6 +81,7 @@ class DeyeDaemon:
         )
 
     def do_task(self):
+        start_time = time.time()
         self.__log.info("Reading start")
         regs = {}
         for reg_range in self.reg_ranges:
@@ -89,7 +92,7 @@ class DeyeDaemon:
         events += self.__get_observations_from_reg_values(regs)
         for processor in self.processors:
             processor.process(events)
-        self.__log.info("Reading completed")
+        self.__log.info("Reading completed in %.1f seconds", time.time() - start_time)
 
     def __get_observations_from_reg_values(self, regs: dict[int, bytearray]) -> list[DeyeObservationEvent]:
         timestamp = datetime.datetime.now()
@@ -139,6 +142,18 @@ class IntervalRunner:
 
 def main():
     config = DeyeConfig.from_env()
+    logger.info("Deye logger config: %s", vars(config))
+    if config.data_read_inverval < config.logger.timeout:
+        new_interval = config.logger.timeout * config.logger.retry
+        logger.warning(
+            "Read interval %s s is too short, it must be greater than the logger timeout of %s s * %s retries. "
+            "Interval increased to %s s.",
+            config.data_read_inverval,
+            config.logger.timeout,
+            config.logger.retry,
+            new_interval,
+        )
+        config.data_read_inverval = new_interval
     daemon = DeyeDaemon(config)
     time_loop = IntervalRunner(config.data_read_inverval, daemon.do_task)
     signal.signal(signal.SIGINT, time_loop.cancel)
