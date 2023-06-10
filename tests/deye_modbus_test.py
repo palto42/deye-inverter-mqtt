@@ -24,7 +24,7 @@ from deye_modbus import DeyeModbus
 
 class DeyeModbusTest(unittest.TestCase):
     def setUp(self):
-        self.config = DeyeConfig(logger_config=DeyeLoggerConfig(1234567890, "192.168.1.1", 8899), mqtt=None)
+        self.config = DeyeConfig(logger_config=DeyeLoggerConfig(1234567890, "192.168.1.1", 8899, 10, 5), mqtt=None)
 
     @patch("deye_connector.DeyeConnector")
     def test_read_register_0x01(self, connector):

@@ -22,46 +22,60 @@ from deye_config import DeyeConfig
 
 
 class DeyeConnector:
+    connect_state = ["connecting", "connected", "send", "receive"]
+
     def __init__(self, config: DeyeConfig) -> None:
         self.__log = logging.getLogger(DeyeConnector.__name__)
         self.config = config.logger
-        self.__reachable = True
+        self.__missed_requests = 0
 
     def send_request(self, req_frame) -> bytes | None:
-        try:
-            client_socket = socket.create_connection((self.config.ip_address, self.config.port), timeout=10)
-            if not self.__reachable:
-                self.__reachable = True
-                self.__log.info("Re-connected to socket on IP %s", self.config.ip_address)
-        except OSError as e:
-            if self.__reachable:
-                self.__log.warning("Could not open socket on IP %s: %s", self.config.ip_address, e)
-            else:
-                self.__log.debug("Could not open socket on IP %s: %s", self.config.ip_address, e)
-            self.__reachable = False
-            return
-
-        self.__log.debug("Request frame: %s", req_frame.hex())
-        client_socket.sendall(req_frame)
-
-        attempts = 5
+        attempts = self.config.retry
         while attempts > 0:
-            attempts = attempts - 1
+            attempts -= 1
+            state = 0
             try:
-                data = client_socket.recv(1024)
-                if data:
-                    self.__log.debug("Received response frame in %s. attempt: %s", 5 - attempts, data.hex())
-                    return data
-                self.__log.warning("No data received")
+                with socket.create_connection(
+                    (self.config.ip_address, self.config.port), timeout=self.config.timeout
+                ) as client_socket:
+                    state = 1
+                    if self.__missed_requests:
+                        self.__log.log(
+                            logging.WARNING if self.__missed_requests > 5 else logging.INFO,
+                            "Re-connected to socket on IP %s, missed %s requests",
+                            self.config.ip_address,
+                            self.__missed_requests,
+                        )
+                        self.__missed_requests = 0
+                    self.__log.debug("Request frame: %s", req_frame.hex())
+                    state = 2
+                    client_socket.sendall(req_frame)
+                    state = 3
+                    data = client_socket.recv(1024)
+                    if data:
+                        self.__log.debug("Response frame: %s", data.hex())
+                        return data
+                    self.__log.warning("No data received")
             except socket.timeout:
-                self.__log.debug("Connection response timeout")
-                if attempts == 0:
-                    self.__log.warning("Too many connection timeouts")
+                self.__log.log(
+                    logging.INFO if attempts else logging.WARNING,
+                    "%s. connection response timeout after %s seconds (state %s)",
+                    self.config.retry - attempts,
+                    self.config.timeout,
+                    self.connect_state[state],
+                )
             except OSError as e:
-                self.__log.error("Connection error: %s: %s", self.config.ip_address, e)
-                return
+                self.__log.log(
+                    logging.INFO if self.__missed_requests else logging.WARNING,
+                    "%s. connection error on IP %s (state %s): %s",
+                    self.config.retry - attempts,
+                    self.config.ip_address,
+                    self.connect_state[state],
+                    e,
+                )
             except Exception:
-                self.__log.exception("Unknown connection error")
-                return
-
+                self.__log.exception("Unknown connection error (state %s)", self.connect_state[state])
+                break
+        self.__missed_requests += 1
+        self.__log.debug("%s. consecutive failure to get data from logger.", self.__missed_requests)
         return
